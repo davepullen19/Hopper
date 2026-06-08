@@ -213,3 +213,10 @@ export const userSchema = z.object({
   companyId: optionalString,
 });
 export type UserInput = z.infer<typeof userSchema>;
+
+// ---------- Auth ----------
+export const signInSchema = z.object({
+  email: z.string().trim().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+export type SignInInput = z.infer<typeof signInSchema>;

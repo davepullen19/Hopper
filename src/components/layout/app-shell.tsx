@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Beer } from "lucide-react";
+import { Menu, X, Beer, LogOut } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, humanize } from "@/lib/utils";
 import { navItems } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/actions/auth";
+import type { CurrentUser } from "@/lib/auth";
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -54,8 +56,48 @@ function Brand() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function UserMenu({ user }: { user: CurrentUser }) {
+  if (!user) return null;
+  return (
+    <div className="border-t px-4 py-3">
+      <div className="mb-2 px-2">
+        <div className="truncate text-sm font-medium">{user.name}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {user.email}
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {humanize(user.role)}
+          {user.company ? ` · ${user.company.name}` : ""}
+        </div>
+      </div>
+      <form action={signOut}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+export function AppShell({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: CurrentUser;
+}) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Auth pages render without the app chrome.
+  if (pathname === "/sign-in") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -66,9 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto pb-6">
             <NavLinks />
           </div>
-          <div className="border-t px-6 py-3 text-xs text-muted-foreground">
-            MVP · v0.1
-          </div>
+          <UserMenu user={user} />
         </div>
       </aside>
 
@@ -79,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-black/60"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-64 border-r bg-card">
+          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r bg-card">
             <div className="flex items-center justify-between">
               <Brand />
               <Button
@@ -91,7 +131,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <NavLinks onNavigate={() => setMobileOpen(false)} />
+            <div className="flex-1 overflow-y-auto">
+              <NavLinks onNavigate={() => setMobileOpen(false)} />
+            </div>
+            <UserMenu user={user} />
           </aside>
         </div>
       )}

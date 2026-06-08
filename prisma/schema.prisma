@@ -295,11 +295,12 @@ model Company {
 
 // Team member profile. Not an auth/login record — just a profile.
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      UserRole @default(VIEWER)
-  companyId String?
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         UserRole @default(VIEWER)
+  passwordHash String? // bcrypt; null = cannot sign in yet
+  companyId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

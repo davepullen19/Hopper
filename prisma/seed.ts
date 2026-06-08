@@ -1,6 +1,10 @@
 import { PrismaClient, type PackageType } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+// Demo login password for the seeded owner. CHANGE THIS in production.
+const DEMO_PASSWORD = "hopper2026";
 
 /**
  * SAFETY GUARD: this seed DELETES ALL DATA before inserting. Refuse to run it
@@ -189,6 +193,7 @@ async function main() {
       name: "Dave Pullen",
       email: "dpullen19@gmail.com",
       role: "OWNER",
+      passwordHash: await bcrypt.hash(DEMO_PASSWORD, 10),
       companyId: company.id,
     },
   });
