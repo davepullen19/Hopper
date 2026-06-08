@@ -1,4 +1,4 @@
-# BrewOps — future features
+# Hopper — future features
 
 Backlog for after the MVP. Ordered roughly by value-to-effort. Kept deliberately
 out of the MVP to stay lean.

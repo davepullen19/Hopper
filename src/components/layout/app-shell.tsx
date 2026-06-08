@@ -47,7 +47,7 @@ function Brand() {
         <Beer className="h-5 w-5" />
       </div>
       <div className="leading-tight">
-        <div className="font-semibold">BrewOps</div>
+        <div className="font-semibold">Hopper</div>
         <div className="text-xs text-muted-foreground">Brewery operations</div>
       </div>
     </div>
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold">BrewOps</span>
+          <span className="font-semibold">Hopper</span>
         </header>
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">{children}</main>
       </div>

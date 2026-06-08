@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "BrewOps — Brewery Operations",
+  title: "Hopper — Brewery Operations",
   description: "Lean brewery production & inventory MVP",
 };
 

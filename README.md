@@ -1,4 +1,4 @@
-# BrewOps 🍺
+# Hopper 🍺
 
 A lean brewery **production + inventory** MVP. Not an ERP — it does production
 batches, inventory, finished goods and sales orders, and nothing else.
@@ -39,8 +39,8 @@ in the same transaction.
 Quick local Postgres with Docker:
 
 ```bash
-docker run --name brewops-db -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=brewops -p 5432:5432 -d postgres:16
+docker run --name hopper-db -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=hopper -p 5432:5432 -d postgres:16
 ```
 
 ### 2. Install & configure
@@ -52,7 +52,7 @@ cp .env.example .env   # then edit DATABASE_URL if needed
 
 `.env`:
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/brewops?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hopper?schema=public"
 ```
 
 ### 3. Create the schema & seed

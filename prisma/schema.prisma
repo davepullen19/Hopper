@@ -1,4 +1,4 @@
-// BrewOps — lean brewery operations MVP
+// Hopper — lean brewery operations MVP
 // Core principle: every operational action creates either a BatchEvent or a StockMovement.
 
 generator client {
