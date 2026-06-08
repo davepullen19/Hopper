@@ -1,0 +1,240 @@
+// BrewOps — lean brewery operations MVP
+// Core principle: every operational action creates either a BatchEvent or a StockMovement.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection (Neon pooler) — used at runtime
+  directUrl = env("DIRECT_URL") // direct connection — used for migrations / db push
+}
+
+// ---------- Enums ----------
+
+enum PackageType {
+  KEG
+  CASK // firkin, pin, etc.
+  CAN
+  BOTTLE
+  DRAFT
+}
+
+enum InventoryType {
+  RAW // raw ingredients
+  PACKAGING // packaging materials
+  FINISHED_GOODS // packaged, sellable product
+}
+
+enum MovementType {
+  PURCHASE // stock in
+  CONSUME // raw/packaging used in production
+  PRODUCE // finished goods created
+  PACKAGE // packaging materials used while packaging a batch
+  ADJUSTMENT // manual correction (signed)
+  ALLOCATE // finished goods reserved/shipped against an order
+  RETURN // stock returned in
+}
+
+enum BatchStatus {
+  PLANNED
+  BREWED
+  FERMENTING
+  CONDITIONING
+  PACKAGED
+  COMPLETE
+  DUMPED
+}
+
+enum BatchEventType {
+  CREATED
+  BREWED
+  INGREDIENT_CONSUMED
+  STATUS_CHANGED
+  PACKAGED
+  NOTE_ADDED
+  DUMPED
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  ALLOCATED
+  FULFILLED
+  CANCELLED
+}
+
+// ---------- Models ----------
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  style       String
+  sku         String      @unique
+  packageType PackageType
+  unitSize    String // e.g. "330ml can", "50L keg", "pint"
+  price       Float? // sell price per unit (e.g. GBP)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  recipes        Recipe[]
+  batches        Batch[]
+  orderLineItems OrderLineItem[]
+  // Finished-goods inventory record that this product packages into.
+  inventoryItem  InventoryItem?
+
+  @@index([active])
+}
+
+model Recipe {
+  id               String   @id @default(cuid())
+  name             String
+  productId        String?
+  targetBatchVolume Float // liters
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product     Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  ingredients RecipeIngredient[]
+  batches     Batch[]
+}
+
+model RecipeIngredient {
+  id              String  @id @default(cuid())
+  recipeId        String
+  inventoryItemId String
+  quantity        Float
+  notes           String?
+
+  recipe        Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@unique([recipeId, inventoryItemId])
+}
+
+model InventoryItem {
+  id                String        @id @default(cuid())
+  name              String
+  type              InventoryType
+  category          String
+  unitOfMeasure     String // e.g. "kg", "L", "units"
+  currentQuantity   Float         @default(0)
+  reorderThreshold  Float         @default(0)
+  supplier          String?
+  // Only set for FINISHED_GOODS items: the product they represent.
+  productId         String?       @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  product           Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  movements         StockMovement[]
+  recipeIngredients RecipeIngredient[]
+
+  @@index([type])
+}
+
+// Immutable ledger. `quantity` is a SIGNED delta applied to the item's currentQuantity.
+// Sum of all movement quantities for an item == its currentQuantity.
+model StockMovement {
+  id              String       @id @default(cuid())
+  inventoryItemId String
+  type            MovementType
+  quantity        Float // signed delta (in / +, out / -)
+  notes           String?
+  batchId         String?
+  orderId         String?
+  createdAt       DateTime     @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  batch         Batch?        @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([inventoryItemId])
+  @@index([batchId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model Batch {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  name          String
+  recipeId      String?
+  productId     String?
+  plannedVolume Float
+  actualVolume  Float?
+  status        BatchStatus @default(PLANNED)
+  vessel        String?
+  brewDate      DateTime?
+  packageDate   DateTime?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  recipe    Recipe?         @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  events    BatchEvent[]
+  movements StockMovement[]
+
+  @@index([status])
+}
+
+// Immutable batch ledger.
+model BatchEvent {
+  id        String         @id @default(cuid())
+  batchId   String
+  type      BatchEventType
+  notes     String?
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([createdAt])
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  orderNumber          String      @unique
+  customerId           String
+  status               OrderStatus @default(DRAFT)
+  requestedDeliveryDate DateTime?
+  notes                String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  customer  Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  lineItems OrderLineItem[]
+  movements StockMovement[]
+
+  @@index([status])
+}
+
+model OrderLineItem {
+  id                String @id @default(cuid())
+  orderId           String
+  productId         String
+  quantity          Int
+  allocatedQuantity Int    @default(0)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
