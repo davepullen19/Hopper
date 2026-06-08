@@ -50,6 +50,14 @@ export const productSchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
     z.number().min(0, "Price cannot be negative").optional()
   ),
+  abv: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+    z.number().min(0).max(100, "ABV must be 0–100").optional()
+  ),
+  taxableVolumeL: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+    z.number().positive("Taxable volume must be > 0").optional()
+  ),
   active: z.boolean().default(true),
 });
 export type ProductInput = z.infer<typeof productSchema>;

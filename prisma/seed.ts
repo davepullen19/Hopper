@@ -18,6 +18,8 @@ async function main() {
 
   // ---------------- Products (finished SKUs) ----------------
   console.log("Seeding products…");
+  // taxableVolumeL = litres of beer per unit charged for duty (firkin/pin use the
+  // taxable capacity from the container types; bottles use their fill volume).
   const products: {
     sku: string;
     name: string;
@@ -25,16 +27,18 @@ async function main() {
     packageType: PackageType;
     unitSize: string;
     price: number;
+    abv: number;
+    taxableVolumeL: number;
   }[] = [
-    { sku: "BB503", name: "Best Bitter - 500ml Bottle", style: "Best Bitter", packageType: "BOTTLE", unitSize: "500ml", price: 1.8 },
-    { sku: "BB504", name: "Best Bitter - 12 × 500ml Bottle", style: "Best Bitter", packageType: "BOTTLE", unitSize: "12 × 500ml", price: 21.6 },
-    { sku: "BBFI1", name: "Best Bitter - Firkin", style: "Best Bitter", packageType: "CASK", unitSize: "Firkin (40.9L)", price: 90.0 },
-    { sku: "BBPI2", name: "Best Bitter - Pin", style: "Best Bitter", packageType: "CASK", unitSize: "Pin (20.5L)", price: 45.0 },
-    { sku: "PA307", name: "Pale Ale - 30L Keg", style: "Pale Ale", packageType: "KEG", unitSize: "30L", price: 90.0 },
-    { sku: "PA508", name: "Pale Ale - 500ml Bottle", style: "Pale Ale", packageType: "BOTTLE", unitSize: "500ml", price: 1.8 },
-    { sku: "PA509", name: "Pale Ale - 12 × 500ml Bottle", style: "Pale Ale", packageType: "BOTTLE", unitSize: "12 × 500ml", price: 21.6 },
-    { sku: "PAFI5", name: "Pale Ale - Firkin", style: "Pale Ale", packageType: "CASK", unitSize: "Firkin (40.9L)", price: 90.0 },
-    { sku: "PAPI6", name: "Pale Ale - Pin", style: "Pale Ale", packageType: "CASK", unitSize: "Pin (20.5L)", price: 45.0 },
+    { sku: "BB503", name: "Best Bitter - 500ml Bottle", style: "Best Bitter", packageType: "BOTTLE", unitSize: "500ml", price: 1.8, abv: 4.2, taxableVolumeL: 0.5 },
+    { sku: "BB504", name: "Best Bitter - 12 × 500ml Bottle", style: "Best Bitter", packageType: "BOTTLE", unitSize: "12 × 500ml", price: 21.6, abv: 4.2, taxableVolumeL: 6 },
+    { sku: "BBFI1", name: "Best Bitter - Firkin", style: "Best Bitter", packageType: "CASK", unitSize: "Firkin (40.9L)", price: 90.0, abv: 4.2, taxableVolumeL: 39.5 },
+    { sku: "BBPI2", name: "Best Bitter - Pin", style: "Best Bitter", packageType: "CASK", unitSize: "Pin (20.5L)", price: 45.0, abv: 4.2, taxableVolumeL: 19.75 },
+    { sku: "PA307", name: "Pale Ale - 30L Keg", style: "Pale Ale", packageType: "KEG", unitSize: "30L", price: 90.0, abv: 4.5, taxableVolumeL: 30 },
+    { sku: "PA508", name: "Pale Ale - 500ml Bottle", style: "Pale Ale", packageType: "BOTTLE", unitSize: "500ml", price: 1.8, abv: 4.5, taxableVolumeL: 0.5 },
+    { sku: "PA509", name: "Pale Ale - 12 × 500ml Bottle", style: "Pale Ale", packageType: "BOTTLE", unitSize: "12 × 500ml", price: 21.6, abv: 4.5, taxableVolumeL: 6 },
+    { sku: "PAFI5", name: "Pale Ale - Firkin", style: "Pale Ale", packageType: "CASK", unitSize: "Firkin (40.9L)", price: 90.0, abv: 4.5, taxableVolumeL: 39.5 },
+    { sku: "PAPI6", name: "Pale Ale - Pin", style: "Pale Ale", packageType: "CASK", unitSize: "Pin (20.5L)", price: 45.0, abv: 4.5, taxableVolumeL: 19.75 },
   ];
   const productBySku: Record<string, string> = {};
   for (const p of products) {

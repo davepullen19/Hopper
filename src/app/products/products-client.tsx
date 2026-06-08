@@ -63,6 +63,8 @@ function ProductDialog({
       packageType: product?.packageType ?? "CAN",
       unitSize: product?.unitSize ?? "",
       price: product?.price ?? undefined,
+      abv: product?.abv ?? undefined,
+      taxableVolumeL: product?.taxableVolumeL ?? undefined,
       active: product?.active ?? true,
     },
   });
@@ -146,6 +148,27 @@ function ProductDialog({
               </Select>
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="ABV (%)"
+              hint="Used to calculate alcohol duty."
+              error={errors.abv?.message}
+            >
+              <Input type="number" step="0.1" {...register("abv")} placeholder="4.2" />
+            </Field>
+            <Field
+              label="Taxable volume (L)"
+              hint="Litres of beer per unit charged for duty."
+              error={errors.taxableVolumeL?.message}
+            >
+              <Input
+                type="number"
+                step="any"
+                {...register("taxableVolumeL")}
+                placeholder="0.5"
+              />
+            </Field>
+          </div>
           <DialogFooter>
             <Button
               type="button"
@@ -184,6 +207,12 @@ export function ProductsClient({ products }: { products: Product[] }) {
       cell: ({ row }) => humanize(row.original.packageType),
     },
     { accessorKey: "unitSize", header: "Unit size" },
+    {
+      accessorKey: "abv",
+      header: "ABV",
+      cell: ({ row }) =>
+        row.original.abv != null ? `${row.original.abv}%` : "—",
+    },
     {
       accessorKey: "price",
       header: "Price",

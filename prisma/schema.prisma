@@ -75,6 +75,8 @@ model Product {
   packageType PackageType
   unitSize    String // e.g. "330ml can", "50L keg", "pint"
   price       Float? // sell price per unit (e.g. GBP)
+  abv            Float? // alcohol by volume, % (for duty)
+  taxableVolumeL Float? // litres of beer per unit charged for duty (e.g. 0.5, 39.5)
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -82,6 +84,7 @@ model Product {
   recipes        Recipe[]
   batches        Batch[]
   orderLineItems OrderLineItem[]
+  dutyRecords    DutyRecord[]
   // Finished-goods inventory record that this product packages into.
   inventoryItem  InventoryItem?
 
@@ -174,12 +177,40 @@ model Batch {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  recipe    Recipe?         @relation(fields: [recipeId], references: [id], onDelete: SetNull)
-  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
-  events    BatchEvent[]
-  movements StockMovement[]
+  recipe      Recipe?         @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  product     Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  events      BatchEvent[]
+  movements   StockMovement[]
+  dutyRecords DutyRecord[]
 
   @@index([status])
+}
+
+// Immutable duty ledger. One row per duty point (a batch packaged into a product).
+// Rate + relief are snapshotted at the duty point because HMRC rates change.
+model DutyRecord {
+  id             String   @id @default(cuid())
+  dutyPointDate  DateTime @default(now())
+  productId      String
+  batchId        String?
+  units          Int
+  abv            Float
+  volumePerUnitL Float
+  lpaTotal       Float // litres of pure alcohol
+  draught        Boolean
+  baseRate       Float // £/LPA before relief
+  sprDiscountPct Float    @default(0)
+  effectiveRate  Float // £/LPA after relief
+  dutyAmount     Float // £
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  batch   Batch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([dutyPointDate])
+  @@index([productId])
+  @@index([batchId])
 }
 
 // Immutable batch ledger.

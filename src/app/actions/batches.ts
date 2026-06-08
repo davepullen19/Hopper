@@ -12,6 +12,7 @@ import {
 } from "@/lib/validations";
 import { type ActionResult, toErrorMessage } from "@/lib/action-result";
 import { recordMovement } from "@/lib/inventory";
+import { calcDuty, isDraughtPackage, SPR_DISCOUNT_PCT } from "@/lib/duty";
 
 function revalidateBatches(id?: string) {
   revalidatePath("/batches");
@@ -289,8 +290,37 @@ export async function packageBatch(input: unknown): Promise<ActionResult> {
           metadata: { productId, units, packagingItemId, packagingPerUnit } as Prisma.InputJsonValue,
         },
       });
+
+      // Duty point: record the alcohol duty owed for this packaging run.
+      // Only possible if the product carries an ABV and a taxable volume.
+      if (product.abv != null && product.taxableVolumeL != null) {
+        const draught = isDraughtPackage(product.packageType);
+        const d = calcDuty({
+          abv: product.abv,
+          volumePerUnitL: product.taxableVolumeL,
+          units,
+          draught,
+          sprDiscountPct: SPR_DISCOUNT_PCT,
+        });
+        await tx.dutyRecord.create({
+          data: {
+            productId: product.id,
+            batchId,
+            units,
+            abv: product.abv,
+            volumePerUnitL: product.taxableVolumeL,
+            lpaTotal: d.lpaTotal,
+            draught,
+            baseRate: d.baseRate,
+            sprDiscountPct: SPR_DISCOUNT_PCT,
+            effectiveRate: d.effectiveRate,
+            dutyAmount: d.dutyAmount,
+          },
+        });
+      }
     });
     revalidateBatches(batchId);
+    revalidatePath("/duty");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: toErrorMessage(e) };
