@@ -20,15 +20,8 @@ export default async function SignInPage({
     >
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <img
-            src="/logo.svg"
-            alt="Hopper"
-            className="h-20 w-20 rounded-2xl shadow-sm"
-          />
-          <h1 className="text-xl font-semibold text-white">Hopper</h1>
-          <p className="text-sm text-white/80">
-            Sign in to your brewery operations
-          </p>
+          <img src="/logo.svg" alt="Hopper" className="h-32 w-32 rounded-2xl" />
+          <h1 className="text-2xl font-semibold text-white">Hopper</h1>
         </div>
         <SignInForm from={from} />
       </div>

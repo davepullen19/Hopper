@@ -4,12 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { Field } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 import { signIn } from "@/app/actions/auth";
+
+const inputClass =
+  "border-white/40 bg-white/15 text-white placeholder:text-white/70 shadow-none focus-visible:ring-white/60 focus-visible:ring-2";
 
 export function SignInForm({ from }: { from?: string }) {
   const {
@@ -33,31 +35,53 @@ export function SignInForm({ from }: { from?: string }) {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field label="Email" required error={errors.email?.message}>
-            <Input
-              {...register("email")}
-              type="email"
-              autoComplete="email"
-              placeholder="you@brewery.com"
-              autoFocus
-            />
-          </Field>
-          <Field label="Password" required error={errors.password?.message}>
-            <Input
-              {...register("password")}
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-            />
-          </Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="sr-only">
+          Email
+        </Label>
+        <Input
+          id="email"
+          {...register("email")}
+          type="email"
+          autoComplete="email"
+          placeholder="Email"
+          autoFocus
+          className={inputClass}
+        />
+        {errors.email && (
+          <p className="text-xs font-medium text-white">
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="password" className="sr-only">
+          Password
+        </Label>
+        <Input
+          id="password"
+          {...register("password")}
+          type="password"
+          autoComplete="current-password"
+          placeholder="Password"
+          className={inputClass}
+        />
+        {errors.password && (
+          <p className="text-xs font-medium text-white">
+            {errors.password.message}
+          </p>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full bg-white text-[#b35a1f] hover:bg-white/90"
+      >
+        {isSubmitting ? "Signing in…" : "Sign in"}
+      </Button>
+    </form>
   );
 }
