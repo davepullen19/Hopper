@@ -2,7 +2,32 @@ import { PrismaClient, type PackageType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+/**
+ * SAFETY GUARD: this seed DELETES ALL DATA before inserting. Refuse to run it
+ * against anything that isn't an obviously-local database, unless explicitly
+ * forced. This prevents accidentally wiping a production/Neon database.
+ *
+ * To seed a remote DB on purpose (you will lose its data):
+ *   ALLOW_DESTRUCTIVE_SEED=yes npm run db:seed
+ */
+function assertSafeToSeed() {
+  const url = process.env.DATABASE_URL ?? "";
+  const isLocal =
+    url.includes("@localhost") ||
+    url.includes("@127.0.0.1") ||
+    url.includes("@0.0.0.0");
+  if (!isLocal && process.env.ALLOW_DESTRUCTIVE_SEED !== "yes") {
+    console.error(
+      "\n✋ Refusing to seed: DATABASE_URL does not look local, and this seed\n" +
+        "   DELETES ALL DATA first. If you really mean to wipe and reseed this\n" +
+        "   database, re-run with:  ALLOW_DESTRUCTIVE_SEED=yes npm run db:seed\n"
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
+  assertSafeToSeed();
   console.log("Clearing existing data…");
   // Delete in dependency order.
   await prisma.stockMovement.deleteMany();
