@@ -65,6 +65,14 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum UserRole {
+  OWNER
+  ADMIN
+  BREWER
+  SALES
+  VIEWER
+}
+
 // ---------- Models ----------
 
 model Product {
@@ -268,4 +276,34 @@ model OrderLineItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+// The brewery's own profile. Single-tenant: typically one row.
+model Company {
+  id                     String   @id @default(cuid())
+  name                   String
+  email                  String?
+  phone                  String?
+  address                String?
+  dutyRegistrationNumber String? // HMRC alcohol producer / approval reference
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  users User[]
+}
+
+// Team member profile. Not an auth/login record — just a profile.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(VIEWER)
+  companyId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }

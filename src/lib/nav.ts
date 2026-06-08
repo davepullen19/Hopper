@@ -8,6 +8,7 @@ import {
   Users,
   ShoppingCart,
   Landmark,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,4 +28,5 @@ export const navItems: NavItem[] = [
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/duty", label: "Duty", icon: Landmark },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];

@@ -180,3 +180,36 @@ export const orderSchema = z.object({
     .min(1, "Add at least one line item"),
 });
 export type OrderInput = z.infer<typeof orderSchema>;
+
+// ---------- Company ----------
+export const companySchema = z.object({
+  name: z.string().trim().min(1, "Company name is required"),
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  phone: optionalString,
+  address: optionalString,
+  dutyRegistrationNumber: optionalString,
+  notes: optionalString,
+});
+export type CompanyInput = z.infer<typeof companySchema>;
+
+// ---------- User ----------
+export const UserRoleEnum = z.enum([
+  "OWNER",
+  "ADMIN",
+  "BREWER",
+  "SALES",
+  "VIEWER",
+]);
+
+export const userSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  email: z.string().trim().email("Invalid email"),
+  role: UserRoleEnum,
+  companyId: optionalString,
+});
+export type UserInput = z.infer<typeof userSchema>;

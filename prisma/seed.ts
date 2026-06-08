@@ -40,6 +40,8 @@ async function main() {
   await prisma.inventoryItem.deleteMany();
   await prisma.product.deleteMany();
   await prisma.customer.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.company.deleteMany();
 
   // ---------------- Products (finished SKUs) ----------------
   console.log("Seeding products…");
@@ -174,9 +176,26 @@ async function main() {
     });
   }
 
+  // ---------------- Company + team ----------------
+  console.log("Seeding company + user…");
+  const company = await prisma.company.create({
+    data: {
+      name: "Macintosh Ales",
+      email: "dpullen19@gmail.com",
+    },
+  });
+  await prisma.user.create({
+    data: {
+      name: "Dave Pullen",
+      email: "dpullen19@gmail.com",
+      role: "OWNER",
+      companyId: company.id,
+    },
+  });
+
   console.log("Seed complete ✔");
   console.log(
-    `  ${products.length} products · 6 inventory items · ${products.length} finished-goods records · 2 recipes · ${customers.length} customers`
+    `  ${products.length} products · 6 inventory items · ${products.length} finished-goods records · 2 recipes · ${customers.length} customers · 1 company · 1 user`
   );
 }
 
