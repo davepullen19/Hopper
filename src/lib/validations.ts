@@ -220,3 +220,28 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 export type SignInInput = z.infer<typeof signInSchema>;
+
+// Shared password rule for setting/changing credentials.
+const passwordField = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(200, "Password is too long");
+
+// Admin sets/resets another user's password.
+export const setPasswordSchema = z.object({
+  password: passwordField,
+});
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
+
+// A signed-in user changes their own password.
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: passwordField,
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

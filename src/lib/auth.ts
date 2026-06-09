@@ -53,3 +53,16 @@ export async function getCurrentUser() {
 }
 
 export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
+
+/** Roles allowed to manage other users (create/delete, set passwords). */
+export const ADMIN_ROLES = ["OWNER", "ADMIN"] as const;
+
+export function isAdminRole(role: string | undefined | null) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+/** Returns the current user only if they're an OWNER/ADMIN, else null. */
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  return isAdminRole(user?.role) ? user : null;
+}
