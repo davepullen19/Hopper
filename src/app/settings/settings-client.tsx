@@ -556,15 +556,19 @@ export function SettingsClient({
   isAdmin: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <CompanyCard company={company} />
+    <div className="space-y-6">
+      {/* Forms side-by-side; the team table gets the full width below so its
+          action column isn't squeezed off-screen. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CompanyCard company={company} />
+        <ChangePasswordCard />
+      </div>
       <UsersCard
         users={users}
         companyId={company?.id ?? null}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
       />
-      <ChangePasswordCard />
     </div>
   );
 }
