@@ -5,9 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import type { Company, User } from "@prisma/client";
+import type { Company } from "@prisma/client";
 
 import { DataTable } from "@/components/data-table";
 import { Field } from "@/components/form-field";
@@ -28,6 +28,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -40,8 +41,12 @@ import {
 import {
   companySchema,
   userSchema,
+  setPasswordSchema,
+  changePasswordSchema,
   type CompanyInput,
   type UserInput,
+  type SetPasswordInput,
+  type ChangePasswordInput,
 } from "@/lib/validations";
 import { humanize } from "@/lib/utils";
 import {
@@ -49,9 +54,22 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  setUserPassword,
+  changeOwnPassword,
 } from "@/app/actions/settings";
 
 const ROLES = ["OWNER", "ADMIN", "BREWER", "SALES", "VIEWER"] as const;
+
+// Team member as sent from the server: no password hash, just a flag for
+// whether one is set (i.e. whether the user can sign in).
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: (typeof ROLES)[number];
+  companyId: string | null;
+  hasPassword: boolean;
+};
 
 // ---------------- Company profile ----------------
 
@@ -126,6 +144,86 @@ function CompanyCard({ company }: { company: Company | null }) {
   );
 }
 
+// ---------------- Change my password ----------------
+
+function ChangePasswordCard() {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ChangePasswordInput>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  async function onSubmit(values: ChangePasswordInput) {
+    const res = await changeOwnPassword(values);
+    if (res.ok) {
+      toast.success("Password changed");
+      reset();
+    } else {
+      toast.error(res.error ?? "Failed");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your password</CardTitle>
+        <CardDescription>Change the password you sign in with.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Field
+            label="Current password"
+            required
+            error={errors.currentPassword?.message}
+          >
+            <Input
+              {...register("currentPassword")}
+              type="password"
+              autoComplete="current-password"
+            />
+          </Field>
+          <Field
+            label="New password"
+            hint="At least 8 characters."
+            required
+            error={errors.newPassword?.message}
+          >
+            <Input
+              {...register("newPassword")}
+              type="password"
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field
+            label="Confirm new password"
+            required
+            error={errors.confirmPassword?.message}
+          >
+            <Input
+              {...register("confirmPassword")}
+              type="password"
+              autoComplete="new-password"
+            />
+          </Field>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Change password"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ---------------- Users / team ----------------
 
 function UserDialog({
@@ -134,7 +232,7 @@ function UserDialog({
   open,
   onOpenChange,
 }: {
-  user?: User;
+  user?: TeamMember;
   companyId: string | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -219,6 +317,88 @@ function UserDialog({
   );
 }
 
+function SetPasswordDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: TeamMember;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<SetPasswordInput>({
+    resolver: zodResolver(setPasswordSchema),
+    defaultValues: { password: "" },
+  });
+
+  async function onSubmit(values: SetPasswordInput) {
+    const res = await setUserPassword(user.id, values);
+    if (res.ok) {
+      toast.success(`Password set for ${user.name}`);
+      reset();
+      onOpenChange(false);
+      router.refresh();
+    } else {
+      toast.error(res.error ?? "Failed");
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) reset();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {user.hasPassword ? "Reset password" : "Set password"}
+          </DialogTitle>
+          <DialogDescription>
+            {user.hasPassword
+              ? `Set a new sign-in password for ${user.name}.`
+              : `Give ${user.name} a password so they can sign in.`}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Field
+            label="New password"
+            hint="At least 8 characters. Share it with them securely."
+            required
+            error={errors.password?.message}
+          >
+            <Input
+              {...register("password")}
+              type="password"
+              autoComplete="new-password"
+            />
+          </Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save password"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function roleVariant(role: string) {
   if (role === "OWNER") return "default" as const;
   if (role === "ADMIN") return "info" as const;
@@ -228,14 +408,20 @@ function roleVariant(role: string) {
 function UsersCard({
   users,
   companyId,
+  isAdmin,
+  currentUserId,
 }: {
-  users: User[];
+  users: TeamMember[];
   companyId: string | null;
+  isAdmin: boolean;
+  currentUserId: string | null;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<User | null>(null);
+  const [editing, setEditing] = useState<TeamMember | null>(null);
+  const [settingPasswordFor, setSettingPasswordFor] =
+    useState<TeamMember | null>(null);
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<TeamMember>[] = [
     {
       accessorKey: "name",
       header: "Name",
@@ -254,6 +440,19 @@ function UsersCard({
       ),
     },
     {
+      accessorKey: "hasPassword",
+      header: "Login",
+      cell: ({ row }) =>
+        row.original.hasPassword ? (
+          <Badge variant="success">Can sign in</Badge>
+        ) : (
+          <Badge variant="muted">No login</Badge>
+        ),
+    },
+  ];
+
+  if (isAdmin) {
+    columns.push({
       id: "actions",
       header: "",
       cell: ({ row }) => (
@@ -261,33 +460,46 @@ function UsersCard({
           <Button
             variant="ghost"
             size="icon"
+            title={row.original.hasPassword ? "Reset password" : "Set password"}
+            onClick={() => setSettingPasswordFor(row.original)}
+          >
+            <KeyRound className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Edit user"
             onClick={() => setEditing(row.original)}
           >
             <Pencil className="h-4 w-4" />
           </Button>
-          <ConfirmButton
-            title="Remove user?"
-            description={`Remove ${row.original.name} from the team.`}
-            confirmLabel="Remove"
-            successMessage="User removed"
-            action={() => deleteUser(row.original.id)}
-            trigger={
-              <Button variant="ghost" size="icon">
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            }
-          />
+          {row.original.id !== currentUserId && (
+            <ConfirmButton
+              title="Remove user?"
+              description={`Remove ${row.original.name} from the team.`}
+              confirmLabel="Remove"
+              successMessage="User removed"
+              action={() => deleteUser(row.original.id)}
+              trigger={
+                <Button variant="ghost" size="icon" title="Remove user">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              }
+            />
+          )}
         </div>
       ),
-    },
-  ];
+    });
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Team</CardTitle>
         <CardDescription>
-          User profiles for your brewery (no login — profiles only).
+          {isAdmin
+            ? "Manage your brewery's users and their sign-in passwords."
+            : "User profiles for your brewery."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -296,24 +508,37 @@ function UsersCard({
           data={users}
           searchPlaceholder="Search team…"
           toolbar={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" /> Add user
-            </Button>
+            isAdmin ? (
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" /> Add user
+              </Button>
+            ) : undefined
           }
         />
       </CardContent>
-      <UserDialog
-        companyId={companyId}
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
-      {editing && (
-        <UserDialog
-          user={editing}
-          companyId={companyId}
-          open={!!editing}
-          onOpenChange={(o) => !o && setEditing(null)}
-        />
+      {isAdmin && (
+        <>
+          <UserDialog
+            companyId={companyId}
+            open={createOpen}
+            onOpenChange={setCreateOpen}
+          />
+          {editing && (
+            <UserDialog
+              user={editing}
+              companyId={companyId}
+              open={!!editing}
+              onOpenChange={(o) => !o && setEditing(null)}
+            />
+          )}
+          {settingPasswordFor && (
+            <SetPasswordDialog
+              user={settingPasswordFor}
+              open={!!settingPasswordFor}
+              onOpenChange={(o) => !o && setSettingPasswordFor(null)}
+            />
+          )}
+        </>
       )}
     </Card>
   );
@@ -322,14 +547,24 @@ function UsersCard({
 export function SettingsClient({
   company,
   users,
+  currentUserId,
+  isAdmin,
 }: {
   company: Company | null;
-  users: User[];
+  users: TeamMember[];
+  currentUserId: string | null;
+  isAdmin: boolean;
 }) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <CompanyCard company={company} />
-      <UsersCard users={users} companyId={company?.id ?? null} />
+      <UsersCard
+        users={users}
+        companyId={company?.id ?? null}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+      />
+      <ChangePasswordCard />
     </div>
   );
 }
